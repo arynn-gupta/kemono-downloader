@@ -1,5 +1,5 @@
 
-import requests, urllib.request, math, os ,re, imghdr
+import requests, urllib.request, math, os ,re
 from urllib.parse import urlparse
 from contextlib import contextmanager
 from bs4 import BeautifulSoup
