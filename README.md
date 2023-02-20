@@ -1,12 +1,12 @@
 # kemono.party downloader
 
-This is a kemono.party scraper that extracts all post's and download's the following in a structured format :
+This is a kemono.party scraper that extracts all post's and download's the following links in a structured format :
 
 - [x] Google Drive File Link 
 - [x] Google Drive Folder Link 
 - [x] Youtube Video Link 
 - [x] kemono.party Link 
-- [x] kemono.party Image 
+- [x] kemono.party Image Link
 - [x] kemono.party Text Content 
 
 Unsupported links are saved in a separate `links.txt` file.
