@@ -16,6 +16,7 @@ YTDL_OPTIONS = {
 }
 VALID_DIR_NAME = r'[\\/:\*\?"<>\|]'
 VALID_IMAGE = r'^[\w,\s-]+\.(jpg|jpeg|png|gif|bmp|tiff|ico)$'
+GOOGLE_DRIVE_ID = r'([\w-]{25,})'
 
 @contextmanager
 def cwd(path):
@@ -41,7 +42,7 @@ def get_articles(url):
         })
     return articles
 
-def get_info(url, last_article):
+def get_info(url, start, end):
     print("\nGET PAGE INFO : " + url, end='\n')
     r = requests.get(url)
     soup = BeautifulSoup(r.content, 'html5lib')
@@ -55,10 +56,24 @@ def get_info(url, last_article):
     articles=[]
     for url in urls:
         articles.extend(get_articles(url))
-    if last_article:
-        n = int(last_article)
-        if n<=len(articles):
-            articles = articles[:-n]
+
+    s = int(start.strip() or 1)
+    e = int(end.strip() or 1)
+    if s<1:
+        s=1
+    if e<1:
+        e=1
+    if s>e:
+        e=s
+    if s>len(articles):
+        s=len(articles)
+    if e>len(articles):
+        e=len(articles)
+    if s-1<=0:
+        articles = articles[-e:]
+    else:
+        articles = articles[-e:-(s-1)]
+
     return {
         "artist_name":artist_name,
         "urls":urls,
@@ -109,15 +124,22 @@ def is_valid_image_filename(filename):
     pattern = re.compile(VALID_IMAGE, re.IGNORECASE)
     return bool(pattern.match(filename))
 
+
+def extract_drive_id(url):
+    match = re.search(GOOGLE_DRIVE_ID, url)
+    if match:
+        return match.group(1)
+    return None
+
 def download_posts(articles, artist_name):
     if len(articles)==0:
         print("No Posts found !")
     else :
-        print("DOWNLOADING POSTS....", end='\n')
+        print("\nDOWNLOADING POSTS....", end='\n')
         for idx, article in enumerate(articles):
             reverse_index = len(articles) - idx
             path = clean_text_for_directory_name(artist_name)+"/"+str(reverse_index)+". "+clean_text_for_directory_name(article["article_name"])+"/"
-            print(path)
+            print("\n"+path)
 
             post = get_post(article)
             if not os.path.exists(path):
@@ -179,10 +201,11 @@ def download_posts(articles, artist_name):
                             elif link.startswith('https://youtu.be/') or link.startswith('https://www.youtube.com/'):
                                 with yt_dlp.YoutubeDL(YTDL_OPTIONS) as ydl:
                                     ydl.download([link_url])
-                            elif link.startswith("https://drive.google.com/file/"):
-                                gdown.download(link_url, quiet=False)
-                            elif link.startswith("https://drive.google.com/drive/folders/"):
-                                gdown.download_folder(link_url, quiet=False)
+                            elif link.startswith("https://drive.google.com/"):
+                                id = extract_drive_id(link)
+                                if link.startswith("https://drive.google.com/drive/folders/"):
+                                    gdown.download_folder(id, quiet=False)
+                                gdown.download(id=id, quiet=False)
                             else :
                                 f=open(LINKS_FILE_NAME,"a+")
                                 f.write(link_url+"\n")
@@ -195,8 +218,9 @@ def download_posts(articles, artist_name):
                 
 
 URL = input("Enter Artist URL : ")
-LAST_ARTICLE = input("Enter last downloaded post : ")
-INFO = get_info(URL, LAST_ARTICLE)
+START = input("START from Article No. : ")
+END = input("END at Article No. : ")
+INFO = get_info(URL, START, END)
 ARTIST_NAME = INFO["artist_name"]
 URLS = INFO['urls']
 ARTICLES = INFO['articles']
