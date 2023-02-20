@@ -21,3 +21,7 @@ Install dependencies using :
 
 Then run the main.py file using:
 `python main.py`
+
+# Debug
+To debug run the errors_fix.py file using:
+`python errors_fix.py`
