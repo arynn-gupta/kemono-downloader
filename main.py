@@ -17,6 +17,7 @@ YTDL_OPTIONS = {
 VALID_DIR_NAME = r'[\\/:\*\?"<>\|]'
 VALID_IMAGE = r'^[\w,\s-]+\.(jpg|jpeg|png|gif|bmp|tiff|ico)$'
 GOOGLE_DRIVE_ID = r'([\w-]{25,})'
+DWN_PREFIX = "Download "
 
 @contextmanager
 def cwd(path):
@@ -47,9 +48,13 @@ def get_info(url, start, end):
     r = requests.get(url)
     soup = BeautifulSoup(r.content, 'html5lib')
     artist_name = soup.find('span', attrs = {'itemprop':'name'}).text
-    paginator_div = soup.find('div', attrs = {'id':'paginator-top'}) 
-    total_articles = paginator_div.small.text.split()[-1]
-    total_pages = math.ceil(int(total_articles) / 50)
+    total_pages=1
+    try:
+        paginator_div = soup.find('div', attrs = {'id':'paginator-top'}) 
+        total_articles = paginator_div.small.text.split()[-1]
+        total_pages = math.ceil(int(total_articles) / 50)
+    except:
+        pass
     urls = []
     for i in range(0,total_pages):
         urls.append(url+'?o='+str(i*50))
@@ -57,22 +62,23 @@ def get_info(url, start, end):
     for url in urls:
         articles.extend(get_articles(url))
 
-    s = int(start.strip() or 1)
-    e = int(end.strip() or 1)
-    if s<1:
-        s=1
-    if e<1:
-        e=1
-    if s>e:
-        e=s
-    if s>len(articles):
-        s=len(articles)
-    if e>len(articles):
-        e=len(articles)
-    if s-1<=0:
-        articles = articles[-e:]
-    else:
-        articles = articles[-e:-(s-1)]
+    if start or end:
+        s = int(start.strip() or 1)
+        e = int(end.strip() or 1)
+        if s<1:
+            s=1
+        if e<1:
+            e=1
+        if s>e:
+            e=s
+        if s>len(articles):
+            s=len(articles)
+        if e>len(articles):
+            e=len(articles)
+        if s-1<=0:
+            articles = articles[-e:]
+        else:
+            articles = articles[-e:-(s-1)]
 
     return {
         "artist_name":artist_name,
@@ -92,7 +98,10 @@ def get_post(article):
 
     try:
         for link in post__body.findAll('a'):
-            links.append(link['href'])
+            links.append({
+                'url': link['href'],
+                'name': link.text.strip() or ""
+                })
     except:
         pass
 
@@ -184,23 +193,26 @@ def download_posts(articles, artist_name):
 
                 print("Downloading Links....")
                 if post['post_links']:
-                    for link in post['post_links']:
+                    for item in post['post_links']:
                         try:
-                            link_url = link
+                            link = item['url']
+                            file_name = item['name'].replace(DWN_PREFIX, "", 1)
+                            base_name, file_extension = os.path.splitext(item['name'])
                             if link.startswith('/'):
-                                link_url = URL_PATH+link
-                                parsed_url = urlparse(link_url)
-                                file_name = os.path.basename(parsed_url.path)
+                                link = URL_PATH+link
+                                parsed_url = urlparse(link)
+                                if not base_name or not file_extension:
+                                    file_name = os.path.basename(parsed_url.path)
                                 file_path = ""
                                 if is_valid_image_filename(file_name):
                                     file_path = IMAGES_FOLDER+"/"
                                 file_name=file_path+file_name
                                 if os.path.isfile(file_name):
                                     os.remove(file_name)
-                                urllib.request.urlretrieve(link_url,file_name)
+                                urllib.request.urlretrieve(link,file_name)
                             elif link.startswith('https://youtu.be/') or link.startswith('https://www.youtube.com/'):
                                 with yt_dlp.YoutubeDL(YTDL_OPTIONS) as ydl:
-                                    ydl.download([link_url])
+                                    ydl.download([link])
                             elif link.startswith("https://drive.google.com/"):
                                 id = extract_drive_id(link)
                                 if link.startswith("https://drive.google.com/drive/folders/"):
@@ -208,7 +220,7 @@ def download_posts(articles, artist_name):
                                 gdown.download(id=id, quiet=False)
                             else :
                                 f=open(LINKS_FILE_NAME,"a+")
-                                f.write(link_url+"\n")
+                                f.write(link+"\n")
                                 f.close()
                         except:
                             error=link
@@ -216,14 +228,16 @@ def download_posts(articles, artist_name):
                             errors.write(error+"\n")
                             errors.close()
                 
-
-URL = input("Enter Artist URL : ")
-START = input("START from Article No. : ")
-END = input("END at Article No. : ")
-INFO = get_info(URL, START, END)
-ARTIST_NAME = INFO["artist_name"]
-URLS = INFO['urls']
-ARTICLES = INFO['articles']
-
-download_posts(ARTICLES, ARTIST_NAME)
+if __name__ == '__main__':
+    try:
+        URL = input("Enter Artist URL : ")
+        START = input("START from Article No. : ")
+        END = input("END at Article No. : ")
+        INFO = get_info(URL, START, END)
+        ARTIST_NAME = INFO["artist_name"]
+        URLS = INFO['urls']
+        ARTICLES = INFO['articles']
+        download_posts(ARTICLES, ARTIST_NAME)
+    except:
+        pass
    
