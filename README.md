@@ -9,6 +9,9 @@ This is a kemono.party scraper that extracts all post's and download's the follo
 - [x] kemono.party Image Link
 - [x] kemono.party Text Content 
 
+
+Note: You can whitelist urls to download from using `whitelist.txt` file.
+
 Unsupported links are saved in a separate `links.txt` file.
 
 Scraped Text Content is saved in `readme.txt` file.

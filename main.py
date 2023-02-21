@@ -8,8 +8,9 @@ import gdown
 
 URL_PATH = "https://kemono.party"
 README_FILE = "readme.txt"
-DEBUG_FILE_NAME = "errors.txt"
-LINKS_FILE_NAME = "links.txt"
+DEBUG_FILE = "errors.txt"
+LINKS_FILE = "links.txt"
+WHITELIST_FILE = "whitelist.txt"
 IMAGES_FOLDER = "images"
 YTDL_OPTIONS = {
     'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio',
@@ -158,6 +159,11 @@ def download_posts(articles, artist_name):
 
                 error =""
 
+                whitelist_urls = []
+                f=open(WHITELIST_FILE,"r")
+                whitelist_urls = [line.strip() for line in f.readlines()]
+                f.close()
+
                 print("Downloading Readme....")
                 if post['post_content']:
                     try:
@@ -167,7 +173,7 @@ def download_posts(articles, artist_name):
                             f.close()
                     except:
                         error=post['post_content']
-                        errors = open(DEBUG_FILE_NAME,"a+")
+                        errors = open(DEBUG_FILE,"a+")
                         errors.write(error+"\n")
                         errors.close()
 
@@ -187,7 +193,7 @@ def download_posts(articles, artist_name):
                                 urllib.request.urlretrieve(image_url,file_name)
                         except :
                             error=image
-                            errors = open(DEBUG_FILE_NAME,"a+")
+                            errors = open(DEBUG_FILE,"a+")
                             errors.write(error+"\n")
                             errors.close()
 
@@ -210,6 +216,10 @@ def download_posts(articles, artist_name):
                                 if os.path.isfile(file_name):
                                     os.remove(file_name)
                                 urllib.request.urlretrieve(link,file_name)
+                            elif any(link.startswith(url) for url in whitelist_urls):
+                                parsed_url = urlparse(link)
+                                file_name = os.path.basename(parsed_url.path)
+                                urllib.request.urlretrieve(link,file_name)
                             elif link.startswith('https://youtu.be/') or link.startswith('https://www.youtube.com/'):
                                 with yt_dlp.YoutubeDL(YTDL_OPTIONS) as ydl:
                                     ydl.download([link])
@@ -219,12 +229,12 @@ def download_posts(articles, artist_name):
                                     gdown.download_folder(id, quiet=False)
                                 gdown.download(id=id, quiet=False)
                             else :
-                                f=open(LINKS_FILE_NAME,"a+")
+                                f=open(LINKS_FILE,"a+")
                                 f.write(link+"\n")
                                 f.close()
                         except:
                             error=link
-                            errors = open(DEBUG_FILE_NAME,"a+")
+                            errors = open(DEBUG_FILE,"a+")
                             errors.write(error+"\n")
                             errors.close()
                 
