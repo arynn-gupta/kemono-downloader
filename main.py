@@ -160,9 +160,10 @@ def download_posts(articles, artist_name):
                 error =""
 
                 whitelist_urls = []
-                f=open(WHITELIST_FILE,"r")
-                whitelist_urls = [line.strip() for line in f.readlines()]
-                f.close()
+                if os.path.isfile(WHITELIST_FILE):
+	                f=open(WHITELIST_FILE,"r")
+	                whitelist_urls = [line.strip() for line in f.readlines()]
+	                f.close()
 
                 print("Downloading Readme....")
                 if post['post_content']:
